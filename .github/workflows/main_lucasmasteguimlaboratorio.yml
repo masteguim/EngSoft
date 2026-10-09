@@ -9,37 +9,55 @@ name: Build and deploy Python app to Azure Web App - Lucasmasteguimlaboratorio
 on:
 #deu push na branch main
   push:
+  #vai pra branch main
     branches:
       - 'main'
+  #deixa executar o pipeline diretamente na main
   workflow_dispatch:
 
+#trabalho que sao construidos
 jobs:
+#constroi onde deve ser feito
   build:
+  #define que sera feito na ultima edicao do ubuntu
     runs-on: ubuntu-latest
+    #define a permissao
     permissions:
+    #so da para ler 
       contents: read #This is required for actions/checkout
-
+#passos
     steps:
+    #os passos usam actions/checkout@v4
       - uses: actions/checkout@v4
-
+#define o nome 
       - name: Set up Python version
+      #usam o actions/checkout@v4
         uses: actions/setup-python@v5
+        #define que versao usa
         with:
+        #a versao e o python 3.14
           python-version: '3.14'
 
       # 🛠️ Local Build Section (Optional)
       # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
+     #define outro nome
       - name: Create and Start virtual environment and Install dependencies
+      #executa os comandos
         run: |
           python -m venv antenv
           source antenv/bin/activate
           pip install -r requirements.txt
                 
       # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
+      #define onome para o trabalho de deployment
       - name: Upload artifact for deployment jobs
+      #ele usa actions/upload-artifact@v4
         uses: actions/upload-artifact@v4
+        #com o nome do aplicativo
         with:
+        #escolhe o app do python
           name: python-app
+          #direciona onde ele vai
           path: |
             .
             !antenv/
@@ -49,31 +67,47 @@ jobs:
       # 1. Remove the SCM_DO_BUILD_DURING_DEPLOYMENT app setting from your Azure App Service Environment variables.
       # 2. Refer to sample workflows for alternative deployment strategies: https://github.com/Azure/actions-workflow-samples/tree/master/AppService
       
-
+#faz o deploy
   deploy:
+  #ele funciona na ultima edicao do ubuntu
     runs-on: ubuntu-latest
+    #ele precisa do build
     needs: build
+    #para funcionar ele pede o id token e o contents
     permissions:
+    #id token escreve
       id-token: write #This is required for requesting the JWT
+      #contents le
       contents: read #This is required for actions/checkout
-
+#passos seguintes
     steps:
+    #nome do que fazer
       - name: Download artifact from build job
+      #usa actions/download-artifact@v4
         uses: actions/download-artifact@v4
+        #usa o actions/download-artifact@v4 com python app
         with:
           name: python-app
-      
+      #nome e login to azure
       - name: Login to Azure
+      #usa o login da azure
         uses: azure/login@v2
+        #com secrets que estão no repositorio
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B9B9E2EC1E904E2E835561CAA041B951 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8F8C65166CD6428CBC092476585B7526 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_44ACE89F1BE34F639165816008CF90C8 }}
 
+#deu deploy no azure web app
       - name: 'Deploy to Azure Web App'
+      #usando o azure/webapps-deploy@v3
         uses: azure/webapps-deploy@v3
+        #com o id 
         id: deploy-to-webapp
+        #utilizando o app-name: 'Lucasmasteguimlaboratorio" slot-name: 'Production'
         with:
+        #nome definido no azure
           app-name: 'Lucasmasteguimlaboratorio'
+          #slot definido no azure
           slot-name: 'Production'
           
